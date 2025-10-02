@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>徐志豪的希腊-拉丁字母映射系统</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        .mode-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .input-section {
+            margin: 20px 0;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background: #5a6fd8;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>徐志豪的希腊-拉丁字母映射系统</h1>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" onclick="switchMode('encode')">拉丁 → 希腊</button>
+            <button class="mode-btn" onclick="switchMode('decode')">希腊 → 拉丁</button>
+        </div>
+
+        <div id="encode-section">
+            <div class="input-section">
+                <textarea id="latin-input" placeholder="请输入拉丁文本..."></textarea>
+            </div>
+            <button onclick="encodeToGreek()">编码为希腊字母</button>
+        </div>
+
+        <div id="decode-section" class="hidden">
+            <div class="input-section">
+                <textarea id="greek-input" placeholder="请输入希腊字母对..."></textarea>
+            </div>
+            <button onclick="decodeToLatin()">解码为拉丁字母</button>
+        </div>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        // 映射字典（基于您提供的完整映射）
+        const mapping = {
+            // 大写字母映射
+            'A': 'ΦΨ', 'B': 'δΖ', 'C': 'ΒΘ', 'D': 'ςΙ', 'E': 'ΙΗ', 'F': 'λΡ', 'G': 'ΛΦ', 'H': 'γΛ',
+            'I': 'ΩΠ', 'J': 'μΙ', 'K': 'ΚΗ', 'L': 'ηΖ', 'M': 'ΦΝ', 'N': 'Ργ', 'O': 'θω', 'P': 'Πθ',
+            'Q': 'ζκ', 'R': 'Ιν', 'S': 'ςκ', 'T': 'Νμ', 'U': 'ζπ', 'V': 'Βρ', 'W': 'ψλ', 'X': 'Δω',
+            'Y': 'θγ', 'Z': 'Ψμ',
+            
+            // 小写字母映射  
+            'a': 'ΡΠ', 'b': 'ΗΦ', 'c': 'πΣ', 'd': 'ΜΓ', 'e': 'κB', 'f': 'ΛΖ', 'g': 'μΖ', 'h': 'ΓΗ',
+            'i': 'ων', 'j': 'ΜΩ', 'k': 'κΛ', 'l': 'ΗΡ', 'm': 'φΠ', 'n': 'Ρκ', 'o': 'Θι', 'p': 'Πμ',
+            'q': 'ςψ', 'r': 'Φβ', 's': 'ςγ', 't': 'Νθ', 'u': 'Ωψ', 'v': 'λς', 'w': 'γδ', 'x': 'δφ',
+            'y': 'ρι', 'z': 'Νδ'
+        };
+
+        // 创建反向映射
+        const reverseMapping = {};
+        for (const [key, value] of Object.entries(mapping)) {
+            reverseMapping[value] = key;
+        }
+
+        function switchMode(mode) {
+            document.getElementById('encode-section').classList.toggle('hidden', mode !== 'encode');
+            document.getElementById('decode-section').classList.toggle('hidden', mode !== 'decode');
+            
+            // 更新按钮状态
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('result').innerHTML = '';
+        }
+
+        function encodeToGreek() {
+            const latinInput = document.getElementById('latin-input').value;
+            let result = '';
+            
+            for (const char of latinInput) {
+                if (mapping[char]) {
+                    result += mapping[char] + ' ';
+                } else {
+                    result += char;
+                }
+            }
+            
+            document.getElementById('result').innerHTML = `<strong>编码结果：</strong>\n${result.trim()}`;
+        }
+
+        function decodeToLatin() {
+            const greekInput = document.getElementById('greek-input').value;
+            // 移除空格，然后每2个字符一组
+            const cleanInput = greekInput.replace(/\s/g, '');
+            let result = '';
+            
+            for (let i = 0; i < cleanInput.length; i += 2) {
+                const pair = cleanInput.substr(i, 2);
+                if (reverseMapping[pair]) {
+                    result += reverseMapping[pair];
+                } else if (pair.length === 2) {
+                    result += `[${pair}]`;
+                }
+            }
+            
+            document.getElementById('result').innerHTML = `<strong>解码结果：</strong>\n${result}`;
+        }
+    </script>
+</body>
+</html>
